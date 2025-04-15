@@ -3,6 +3,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.10-blue)](https://www.python.org/downloads/)
 
 ***This forks version adds a new flag `translate` which enables whisper translation to English.***
+
 Powered by 🤗 *Transformers* & *Optimum* and based on **[Vaibhavs10/insanely-fast-whisper](https://github.com/Vaibhavs10/insanely-fast-whisper)**.
 
 **TL;DR** - 🎙️ Transcribe **300** minutes (5 hours) of audio in less than **10** minutes - with [OpenAI's Whisper Large v2](https://huggingface.co/openai/whisper-large-v2). Blazingly fast transcription is now a reality!⚡️
