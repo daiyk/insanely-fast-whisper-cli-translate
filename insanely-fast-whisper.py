@@ -3,7 +3,7 @@
 import click
 import os
 import time
-
+# insanely-fast-whisper --model openai/whisper-base --device mps --dtype float16 --batch-size 4 ../289386804-aa5a1e7e-dc94-481f-8863-b022c7fd7434.mp4 
 @click.command()
 @click.option('--model', default='openai/whisper-base', help='ASR model to use for speech recognition. Default is "openai/whisper-base". Model sizes include base, small, medium, large, large-v2. Additionally, try appending ".en" to model names for English-only applications (not available for large).')
 @click.option('--device', default='cuda:0', help='Device to use for computation. Default is "cuda:0". If you want to use CPU, specify "cpu".')
@@ -11,16 +11,20 @@ import time
 @click.option('--batch-size', type=int, default=8, help='Batch size for processing. This is the number of audio files processed at once. Default is 8.')
 @click.option('--better-transformer', is_flag=True, help='Flag to use BetterTransformer for processing. If set, BetterTransformer will be used.')
 @click.option('--chunk-length', type=int, default=30, help='Length of audio chunks to process at once, in seconds. Default is 30 seconds.')
+@click.option('--translate', is_flag=True, help='Flag to enable translation. If set, the model will perform translation to English instead of transcription.')
 @click.argument('audio_file', type=str)
-def asr_cli(model, device, dtype, batch_size, better_transformer, chunk_length, audio_file):
+def asr_cli(model, device, dtype, batch_size, better_transformer, chunk_length, translate, audio_file):
     from transformers import pipeline
     import torch
-
+    generate_config = {}
+    if translate:
+        generate_config['language'] = 'en'
     # Initialize the ASR pipeline
     pipe = pipeline("automatic-speech-recognition",
                     model=model,
                     device=device,
-                    torch_dtype=torch.float16 if dtype == "float16" else torch.float32)
+                    torch_dtype=torch.float16 if dtype == "float16" else torch.float32,
+                    generate_kwargs=generate_config)
 
     if better_transformer:
         pipe.model = pipe.model.to_bettertransformer()
@@ -28,6 +32,8 @@ def asr_cli(model, device, dtype, batch_size, better_transformer, chunk_length, 
     # Perform ASR
     click.echo("Model loaded.")
     start_time = time.perf_counter()
+    # Check if translation is enabled
+
     outputs = pipe(audio_file, chunk_length_s=chunk_length, batch_size=batch_size, return_timestamps=True)
 
     # Output the results
