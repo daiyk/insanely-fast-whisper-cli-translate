@@ -1,5 +1,5 @@
 # Insanely Fast Whisper (CLI)
-
+!This forks version adds a new flag `translate` which enables whisper translation to English 
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ochen1/insanely-fast-whisper-cli/blob/main/LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10-blue)](https://www.python.org/downloads/)
 
