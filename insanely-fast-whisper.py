@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-
 import click
 import os
 import time
-# insanely-fast-whisper --device mps ../289386804-aa5a1e7e-dc94-481f-8863-b022c7fd7434.mp4 
+# sample usage:
+#   automatic-speech-recognition: python insanely-fast-whisper.py --device mps sample_file.mp4 [use openai/whisper-large-v3-turbo model]
+#   text-translation: python insanely-fast-whisper.py --task translation --device mps sample_file.txt [use Helsinki-NLP/opus-mt-de-en model]
 @click.command()
-@click.command('--task', default='ASR', help='Pipeline to use. Default is "ASR"(automatic-speech-recognition). Other options include "translation".')
-@click.option('--model', default='openai/whisper-large-v3-turbo', help='ASR model to use for speech recognition. Default is "openai/whisper-base". Model sizes include base, small, medium, large, large-v2. Additionally, try appending ".en" to model names for English-only applications (not available for large).')
+@click.option('--task', default='ASR', help='Pipeline to use. Default is "ASR"(automatic-speech-recognition). Other options include "translation".')
+@click.option('--model', default='openai/whisper-large-v3-turbo', help='ASR model to use for speech recognition. Default is "openai/whisper-base" for ASR and "Helsinki-NLP/opus-mt-en-de" for translation. Model sizes include base, small, medium, large, large-v2. Additionally, try appending ".en" to model names for English-only applications (not available for large).')
 @click.option('--device', default='cuda:0', help='Device to use for computation. Default is "cuda:0". If you want to use CPU, specify "cpu".')
 @click.option('--dtype', default='float32', help='Data type for computation. Can be either "float32" or "float16". Default is "float32".')
 @click.option('--batch-size', type=int, default=8, help='Batch size for processing. This is the number of audio files processed at once. Default is 8.')
@@ -21,7 +22,7 @@ def asr_cli(task, model, device, dtype, batch_size, chunk_length, translate, aud
         if translate:
             generate_config['language'] = 'en'
             generate_config['task'] = 'translate'
-        model_id = "openai/whisper-large-v3-turbo"
+        model_id = model
         torch_dtype = torch.float16 if dtype == "float16" else torch.float32
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
             model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True
@@ -75,12 +76,14 @@ def asr_cli(task, model, device, dtype, batch_size, chunk_length, translate, aud
     if task == "translation":
         from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
         # Initialize the translation pipeline
-        model_id = "Helsinki-NLP/opus-mt-de-en"
+        if model == "openai/whisper-large-v3-turbo":
+            # fall back to the default model
+            model_id = "Helsinki-NLP/opus-mt-de-en"
         torch_dtype = torch.float16 if dtype == "float16" else torch.float32
         input_text = ""
         if not audio_file.endswith(('.wav','.mp3', '.flac', '.m4a', '.ogg')):
             try:
-                with open(audio_file,'b', encoding='utf-8') as f:
+                with open(audio_file,'r', encoding='utf-8') as f:
                     input_text = f.read()
             except Exception as e:
                 click.echo(f"Error reading audio file: {e}")
@@ -110,11 +113,14 @@ def asr_cli(task, model, device, dtype, batch_size, chunk_length, translate, aud
             paragraphs = input_text.split('\n')
             translated_paragraphs = []
             for paragraph in paragraphs:
-                translated_paragraph = pipe(paragraph)[0]['translation_text']
-                if isinstance(translated_paragraph, list):
-                    translated_paragraphs.append(translated_paragraph[0]['translation_text'])
-                else:
-                    translated_paragraphs.append(' ')
+                if not paragraph.strip()== '':
+                    translated_info = pipe(paragraph)
+                    print(f"Translated raw output: {translated_info}")
+                    translated_paragraph = translated_info[0]['translation_text']
+                    if isinstance(translated_paragraph, str):
+                        translated_paragraphs.append(translated_paragraph)
+                    else:
+                        translated_paragraphs.append(' ')
             translated_text = '\n'.join(translated_paragraphs)  
 
             # output the translated text

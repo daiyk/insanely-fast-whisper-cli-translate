@@ -5,3 +5,6 @@ git+https://github.com/huggingface/transformers
 accelerate
 optimum
 click
+cmake==3.31
+sentencepiece
+
